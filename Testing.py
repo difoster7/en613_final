@@ -1,10 +1,9 @@
 import sys
-sys.path.append('./TurboPi')
-import hiwonderSDK.mecanum as mecanum
+import TurboPi.HiwonderSDK.mecanum as mecanum
 import signal
 import time
 
-chassis = mecanum.Mecanumchassis()
+chassis = mecanum.MecanumChassis()
 
 def stop(signum, frame):
     print("stopping from signal interrupt")
