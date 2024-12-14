@@ -6,9 +6,9 @@ import numpy as np
 import a_star_planner
 from threading import Timer
 
-position = (0.0, 0.0)   # Position is in units of 1' x 1' grid squares
+position = np.array([0.0, 0.0])   # Position is in units of 1' x 1' grid squares
 goal_position = None
-velocity = (0.0, 0.0, 0.0)  # Linear velocity (in/s), Linear direction (rad), Angular velocity (deg / half s)
+velocity = np.array([0.0, 0.0, 0.0])  # Linear velocity (in/s), Linear direction (rad), Angular velocity (deg / half s)
 
 chassis = mecanum.MecanumChassis()
 
@@ -52,10 +52,10 @@ class RobotController:
     def update_position(self):
         global position
 
-        position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz
-        position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz
+        position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz * 1.1
+        position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz * 1.1
 
-        print(f"at {position}")
+        #print(f"at {position}")
 
 
     # Drive the robot to the current goal
@@ -63,12 +63,12 @@ class RobotController:
         global velocity
 
         if (goal_position is not None):
-            theta = np.atan2(goal_position[1] - position[1], goal_position[0] - position[0])
-            velocity = np.array([1.0, theta, 0.0])
+            theta = np.arctan2(goal_position[1] - position[1], goal_position[0] - position[0])
+            velocity = np.array([1, theta, 0.0])
         else:
             velocity = np.array([0.0, 0.0, 0.0])
         
-        print(velocity)
+        #print(velocity)
         chassis.set_velocity(velocity[0] * foot_per_sec, velocity[1] * deg_to_rad + 90, velocity[2])
 
     def stop(self):

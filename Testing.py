@@ -1,4 +1,3 @@
-'''
 import sys
 import TurboPi.HiwonderSDK.mecanum as mecanum
 import signal
@@ -35,7 +34,7 @@ def rotate():
 
 if __name__ == '__main__':
     print("driving forward")
-    move_fwd(12)
+    move_fwd(6)
     time.sleep(2)
     print("Rotating")
     rotate()
@@ -62,11 +61,11 @@ class RepeatTimer(Timer):
             self.function(*self.args, **self.kwargs)
 
 class RobotController:
-    '''
+    
     Robot Controller class is responsible for driving the robot from its current position to a goal position
     Also provides some utility functions for other movement
     No other classes/functions should provide robot inputs (except the signal stop function)
-    '''
+    
 
     def __init__(self, hz):
         # hz = speed at which the position and velocity threads should run
@@ -113,9 +112,9 @@ class RobotPlanner:
     # RobotPlanner class plans a route to a goal using A*, and directs the robot to move along the route
 
     def __init__(self, map: np.ndarray):
-        '''
+        
         map: 2D numpy array containing the map of the area. 0 represents open space, 1 represents occupied.
-        '''
+        
         self.map = map
 
 
@@ -164,3 +163,4 @@ if __name__ == '__main__':
 
     controller.update_position_thread.cancel()
     controller.set_velocity_to_goal_thread.cancel()
+'''
