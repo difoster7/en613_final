@@ -6,14 +6,14 @@ import numpy as np
 import a_star_planner
 from threading import Timer
 
-position = (0, 0)   # Position is in units of 1' x 1' grid squares
+position = (0.0, 0.0)   # Position is in units of 1' x 1' grid squares
 goal_position = None
-velocity = (0, 0, 0)  # Linear velocity (in/s), Linear direction (rad), Angular velocity (deg / half s)
+velocity = (0.0, 0.0, 0.0)  # Linear velocity (in/s), Linear direction (rad), Angular velocity (deg / half s)
 
 chassis = mecanum.MecanumChassis()
 
 inches_to_mm = 25.4
-ft_per_sec = 12 * inches_to_mm
+foot_per_sec = 12 * inches_to_mm
 deg_to_rad = 180 / np.pi
 
 def stop(signum, frame):
@@ -43,31 +43,38 @@ class RobotController:
     def __init__(self, hz):
         # hz = speed at which the position and velocity threads should run
         self.update_position_thread = RepeatTimer(hz, self.update_position)
+        self.update_position_thread.daemon = True
         self.set_velocity_to_goal_thread = RepeatTimer(hz, self.set_velocity_to_goal)
+        self.set_velocity_to_goal_thread.daemon = True
+        self.hz = hz
 
     # Update robot position
     def update_position(self):
         global position
 
-        position[0] = position[0] + velocity[0] * np.cos(velocity[1])
-        position[1] = position[1] + velocity[0] * np.sin(velocity[1])
+        position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz
+        position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz
+
+        print(f"at {position}")
+
 
     # Drive the robot to the current goal
     def set_velocity_to_goal(self):
         global velocity
 
         if (goal_position is not None):
-            theta = np.atan2(position[1] - goal_position[1], position[0] - goal_position[0])
-            velocity = (ft_per_sec, theta, 0)
+            theta = np.atan2(goal_position[1] - position[1], goal_position[0] - position[0])
+            velocity = np.array([1.0, theta, 0.0])
         else:
-            velocity = (0, 0, 0)
-        chassis.set_velocity(velocity[0], velocity[1] * deg_to_rad, velocity[2])
+            velocity = np.array([0.0, 0.0, 0.0])
+        
+        print(velocity)
+        chassis.set_velocity(velocity[0] * foot_per_sec, velocity[1] * deg_to_rad + 90, velocity[2])
 
     def stop(self):
         # Stops the vehicle
-        global velocity
-        velocity = (0, 0, 0)
-        chassis.set_velocity(velocity[0], velocity[1] * deg_to_rad, velocity[2])
+        velocity = np.array([0.0, 0.0, 0.0])
+        chassis.set_velocity(velocity[0] * foot_per_sec, velocity[1] * deg_to_rad + 90, velocity[2])
         print("Vehicle stopped")
     
     def happy_dance(self):
@@ -84,18 +91,20 @@ class RobotPlanner:
         self.map = map
 
 
-    def navigate_to_final_goal(self, final_goal: np.ndarray):
-        # goal: 1D numpy array containing the coordinates of the goal square
-        self.plan = a_star_planner.a_star_grid(self.map, (np.floor(position[0]).item(), np.floor(position[1]).item()), final_goal)
+    # Determines a route to the final goal, then navigates there by update intermediate goals 
+    def navigate_to_final_goal(self, final_goal: tuple):
+        global goal_position
+        self.plan = a_star_planner.a_star_grid(self.map, (int(position[0]), int(position[1])), final_goal)
 
-        goal_position = self.plan.pop().name
-
+        goal_position = self.plan.pop(0).name
+        print(f"navigating to {goal_position}")
         while (True):
             if (self.close_to_goal()):
                 if goal_position == final_goal:
                     break
                 print(f"reached point {goal_position}")
-                goal_position = self.plan.pop().name
+                goal_position = self.plan.pop(0).name
+                print(f"navigating to {goal_position}")
             else:
                 time.sleep(0.1)
 
@@ -103,6 +112,8 @@ class RobotPlanner:
 
     # Returns true if position is less than 0.1 units from the current goal
     def close_to_goal(self):
+        if goal_position is None:
+            return False
         if np.sqrt((position[0] - goal_position[0]) ** 2 + (position[1] - goal_position[1]) ** 2) < 0.1:
             return True
         else: 
@@ -116,12 +127,13 @@ if __name__ == '__main__':
                     [0,1,0,1,0],
                     [0,0,0,1,0]])
     final_goal = (4, 4)
-    controller = RobotController(30)
+    controller = RobotController(1 / 30)
     controller.update_position_thread.start()
     controller.set_velocity_to_goal_thread.start()
 
     planner = RobotPlanner(map)
     planner.navigate_to_final_goal(final_goal)
+    controller.stop()
 
     controller.update_position_thread.cancel()
     controller.set_velocity_to_goal_thread.cancel()
