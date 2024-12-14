@@ -16,6 +16,12 @@ inches_to_mm = 25.4
 foot_per_sec = 12 * inches_to_mm
 deg_to_rad = 180 / np.pi
 
+# The robot consistently overestimates it's position by different amounts
+# in the x and y directions
+# fudge facctors help to account for cumulative estimation erros
+x_fudge_factor = 1.15
+y_fudge_factor = 1.05
+
 def stop(signum, frame):
     print("stopping from signal interrupt")
     global goal_position
@@ -52,8 +58,8 @@ class RobotController:
     def update_position(self):
         global position
 
-        position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz * 1.1
-        position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz * 1.1
+        position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz * x_fudge_factor
+        position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz * y_fudge_factor
 
         #print(f"at {position}")
 
@@ -122,11 +128,11 @@ class RobotPlanner:
 
 if __name__ == '__main__':
     map = np.array([[0,1,0,0,0],
-                    [0,1,0,0,0],
+                    [0,1,1,1,0],
                     [0,1,0,0,0],
                     [0,1,0,1,0],
                     [0,0,0,1,0]])
-    final_goal = (4, 4)
+    final_goal = (0, 2)
     controller = RobotController(1 / 30)
     controller.update_position_thread.start()
     controller.set_velocity_to_goal_thread.start()
