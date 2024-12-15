@@ -1,7 +1,10 @@
-import sys
 import TurboPi.HiwonderSDK.mecanum as mecanum
+import TurboPi.HiwonderSDK.ros_robot_controller_sdk as rrc
+import TurboPi.HiwonderSDK.Sonar as snr
 import signal
 import time
+import colorsys
+import yaml
 import numpy as np
 import a_star_planner
 from threading import Timer
@@ -11,6 +14,8 @@ goal_position = None
 velocity = np.array([0.0, 0.0, 0.0])  # Linear velocity (in/s), Linear direction (rad), Angular velocity (deg / half s)
 
 chassis = mecanum.MecanumChassis()
+board = rrc.Board()
+s = snr.Sonar()
 
 inches_to_mm = 25.4
 foot_per_sec = 12 * inches_to_mm
@@ -18,7 +23,7 @@ deg_to_rad = 180 / np.pi
 
 # The robot consistently overestimates it's position by different amounts
 # in the x and y directions
-# fudge facctors help to account for cumulative estimation erros
+# fudge factors help to reduce for cumulative estimation erros
 x_fudge_factor = 1.15
 y_fudge_factor = 1.05
 
@@ -31,6 +36,14 @@ def stop(signum, frame):
     chassis.set_velocity(velocity[0], velocity[1] * deg_to_rad, velocity[2])
 
 signal.signal(signal.SIGINT, stop)
+
+def generate_rainbow(n):
+    rainbow = []
+    for i in range(n):
+        hue = i / n
+        (r, g, b) = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+        rainbow.append((int(255 * r), int(255 * g), int(255 * b)))
+    return rainbow
 
 # Credit to right2clicky at https://stackoverflow.com/questions/12435211/threading-timer-repeat-function-every-n-seconds
 # for the RepeatTimer class
@@ -47,22 +60,20 @@ class RobotController:
     '''
 
     def __init__(self, hz):
-        # hz = speed at which the position and velocity threads should run
+        # param hz = speed at which the position and velocity threads should run
         self.update_position_thread = RepeatTimer(hz, self.update_position)
         self.update_position_thread.daemon = True
         self.set_velocity_to_goal_thread = RepeatTimer(hz, self.set_velocity_to_goal)
         self.set_velocity_to_goal_thread.daemon = True
         self.hz = hz
+        self.reset_hardware()
 
     # Update robot position
-    def update_position(self):
+    def update_position(self, servo1_center, servo2_center):
         global position
 
         position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz * x_fudge_factor
         position[1] = position[1] + (velocity[0] * np.sin(velocity[1])) * self.hz * y_fudge_factor
-
-        #print(f"at {position}")
-
 
     # Drive the robot to the current goal
     def set_velocity_to_goal(self):
@@ -74,30 +85,66 @@ class RobotController:
         else:
             velocity = np.array([0.0, 0.0, 0.0])
         
-        #print(velocity)
         chassis.set_velocity(velocity[0] * foot_per_sec, velocity[1] * deg_to_rad + 90, velocity[2])
 
+    # Stops the vehicle
     def stop(self):
-        # Stops the vehicle
         velocity = np.array([0.0, 0.0, 0.0])
         chassis.set_velocity(velocity[0] * foot_per_sec, velocity[1] * deg_to_rad + 90, velocity[2])
         print("Vehicle stopped")
     
+    # Flashes LEDs in a rainbow
+    def rainbow_all(self, n):
+        rainbow = generate_rainbow(n)
+        s.setRGBMode(0)
+        for i in range(n):
+            rainbow_i = list(rainbow[i])
+            board.set_rgb([[1, rainbow_i[0], rainbow_i[1], rainbow_i[2]], [2, rainbow_i[0], rainbow_i[1], rainbow_i[2]]])
+            s.setPixelColor(0, rainbow[i])
+            s.setPixelColor(1, rainbow[i])
+            time.sleep(1/n)
+
+    def reset_hardware(self):
+        chassis.set_velocity(0, 0, 0)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center], [2, self.servo2_center]])
+        s.setPixelColor(0, (0, 0, 0))
+        s.setPixelColor(1, (0, 0, 0))
+        board.set_rgb([[1, 0, 0, 0], [2, 0, 0, 0]])
+
+    # Robot dances with joy
     def happy_dance(self):
-        # Happy (spin, move servos, flash LED)
-        print("Happy dancing")
+        chassis.set_velocity(0, 0, 45)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center-1000], [2, self.servo2_center-1000]])
+        self.rainbow_all(120)
+        chassis.set_velocity(0, 0, -45)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center+1000], [2, self.servo2_center+1000]])
+        self.rainbow_all(120)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center-1000], [2, self.servo2_center-1000]])
+        self.rainbow_all(120)
+        chassis.set_velocity(0, 0, 45)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center+1000], [2, self.servo2_center+1000]])
+        self.rainbow_all(120)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center-1000], [2, self.servo2_center-1000]])
+        self.rainbow_all(120)
+        chassis.set_velocity(0, 0, -45)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center+1000], [2, self.servo2_center+1000]])
+        self.rainbow_all(120)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center-1000], [2, self.servo2_center-1000]])
+        self.rainbow_all(120)
+        chassis.set_velocity(0, 0, 45)
+        board.pwm_servo_set_position(1, [[1, self.servo1_center+1000], [2, self.servo2_center+1000]])
+        self.rainbow_all(120)
+
+        self.reset_hardware()
 
 class RobotPlanner:
     # RobotPlanner class plans a route to a goal using A*, and directs the robot to move along the route
 
     def __init__(self, map: np.ndarray):
-        '''
-        map: 2D numpy array containing the map of the area. 0 represents open space, 1 represents occupied.
-        '''
+        # param map: 2D numpy array containing the map of the area. 0 represents open space, 1 represents occupied.
         self.map = map
 
-
-    # Determines a route to the final goal, then navigates there by update intermediate goals 
+    # Determines a route to the final goal, then navigates there by updating intermediate goals 
     def navigate_to_final_goal(self, final_goal: tuple):
         global goal_position
         self.plan = a_star_planner.a_star_grid(self.map, (int(position[0]), int(position[1])), final_goal)
@@ -127,19 +174,24 @@ class RobotPlanner:
 
 
 if __name__ == '__main__':
+    with open('TurboPi/servo_config.yaml') as f:
+        servo_config = yaml.load(f, Loader=yaml.SafeLoader)
+
     map = np.array([[0,1,0,0,0],
                     [0,1,1,1,0],
                     [0,1,0,0,0],
                     [0,1,0,1,0],
                     [0,0,0,1,0]])
     final_goal = (0, 2)
-    controller = RobotController(1 / 30)
+    controller = RobotController(1 / 30, servo_config.get('servo1'), servo_config.get('servo2'))
     controller.update_position_thread.start()
     controller.set_velocity_to_goal_thread.start()
 
     planner = RobotPlanner(map)
     planner.navigate_to_final_goal(final_goal)
     controller.stop()
+
+    controller.happy_dance()
 
     controller.update_position_thread.cancel()
     controller.set_velocity_to_goal_thread.cancel()
