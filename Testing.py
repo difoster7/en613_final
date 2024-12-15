@@ -1,8 +1,9 @@
 import sys
-#import TurboPi.HiwonderSDK.mecanum as mecanum
+import TurboPi.HiwonderSDK.mecanum as mecanum
 import signal
 import time
 import colorsys
+import yaml
 import TurboPi.HiwonderSDK.ros_robot_controller_sdk as rrc
 import TurboPi.HiwonderSDK.Sonar as snr
 
@@ -38,8 +39,6 @@ def rotate():
 
 board = rrc.Board()
 s = snr.Sonar()
-
-
 
 def generate_rainbow(n):
     rainbow = []
@@ -79,14 +78,18 @@ def rainbow_all(n):
         s.setPixelColor(1, rainbow[i])
         time.sleep(1/n)
 
+
+def servo_dance():
+    print("servo")
+
 if __name__ == '__main__':
-    rainbow_all(1000)
-    rainbow_all(1000)
-    rainbow_all(1000)
-    rainbow_all(1000)
-    s.setPixelColor(0, (0, 0, 0))
-    s.setPixelColor(1, (0, 0, 0))
-    board.set_rgb([[1, 0, 0, 0], [2, 0, 0, 0]])
+    with open('TurboPi/servo_config.yaml') as f:
+        servo_config = yaml.load(f, Loader=yaml.SafeLoader)
+    
+    servo1_offset = servo_config.get('servo1')
+    servo2_offset = servo_config.get('servo2')
+
+    board.pwm_servo_set_position(1, [[1, servo1_offset], [2, servo2_offset]])
 
 
 '''
