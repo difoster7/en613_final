@@ -9,7 +9,7 @@ import TurboPi.HiwonderSDK.Sonar as snr
 
 inches_to_mm = 25.4
 
-#chassis = mecanum.MecanumChassis()
+chassis = mecanum.MecanumChassis()
 '''
 def stop(signum, frame):
     print("stopping from signal interrupt")
@@ -78,18 +78,33 @@ def rainbow_all(n):
         s.setPixelColor(1, rainbow[i])
         time.sleep(1/n)
 
-
-def servo_dance():
-    print("servo")
-
 if __name__ == '__main__':
     with open('TurboPi/servo_config.yaml') as f:
         servo_config = yaml.load(f, Loader=yaml.SafeLoader)
     
-    servo1_offset = servo_config.get('servo1')
-    servo2_offset = servo_config.get('servo2')
+    servo1_center = servo_config.get('servo1')
+    servo2_center = servo_config.get('servo2')
 
-    board.pwm_servo_set_position(1, [[1, servo1_offset], [2, servo2_offset]])
+    board.pwm_servo_set_position(1, [[1, servo1_center], [2, servo2_center]])
+    time.sleep(1)
+
+    chassis.set_velocity(0, 0, 45)
+    board.pwm_servo_set_position(1, [[1, servo1_center-1000], [2, servo2_center-1000]])
+    rainbow_all(120)
+    chassis.set_velocity(0, 0, -45)
+    board.pwm_servo_set_position(1, [[1, servo1_center+1000], [2, servo2_center+1000]])
+    rainbow_all(120)
+    board.pwm_servo_set_position(1, [[1, servo1_center-1000], [2, servo2_center-1000]])
+    rainbow_all(120)
+    chassis.set_velocity(0, 0, 45)
+    board.pwm_servo_set_position(1, [[1, servo1_center+1000], [2, servo2_center+1000]])
+    rainbow_all(120)
+    
+    chassis.set_velocity(0, 0, 0)
+    board.pwm_servo_set_position(1, [[1, servo1_center], [2, servo2_center]])
+    s.setPixelColor(0, (0, 0, 0))
+    s.setPixelColor(1, (0, 0, 0))
+    board.set_rgb([[1, 0, 0, 0], [2, 0, 0, 0]])
 
 
 '''
