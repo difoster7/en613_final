@@ -3,6 +3,8 @@ import sys
 import signal
 import time
 import colorsys
+import TurboPi.HiwonderSDK.ros_robot_controller_sdk as rrc
+import TurboPi.HiwonderSDK.Sonar as snr
 
 inches_to_mm = 25.4
 
@@ -33,6 +35,12 @@ def rotate():
     time.sleep(1)
     chassis.set_velocity(0,0,0)   
 '''
+
+board = rrc.Board()
+s = snr.Sonar()
+
+
+
 def generate_rainbow(n):
     rainbow = []
     for i in range(n):
@@ -44,12 +52,41 @@ def generate_rainbow(n):
 def move_servos():
     print("moving servoes")
 
-def rgb():
-    print("rgb")
+def rainbow_led(n):
+    rainbow = generate_rainbow(n)
+    for i in range(n):
+        rainbow_i = list(rainbow[i])
+        board.set_rgb([[1, rainbow_i[0], rainbow_i[1], rainbow_i[2]], [2, rainbow_i[0], rainbow_i[1], rainbow_i[2]]])
+        time.sleep(1/n)
+
+
+def rainbow_sonar(n):
+    rainbow = generate_rainbow(n)
+    s.setRGBMode(0)
+    for i in range(n):
+        print(rainbow[i])
+        s.setPixelColor(0, rainbow[i])
+        s.setPixelColor(1, rainbow[i])
+        time.sleep(1/n)
+
+def rainbow_all(n):
+    rainbow = generate_rainbow(n)
+    s.setRGBMode(0)
+    for i in range(n):
+        rainbow_i = list(rainbow[i])
+        board.set_rgb([[1, rainbow_i[0], rainbow_i[1], rainbow_i[2]], [2, rainbow_i[0], rainbow_i[1], rainbow_i[2]]])
+        s.setPixelColor(0, rainbow[i])
+        s.setPixelColor(1, rainbow[i])
+        time.sleep(1/n)
 
 if __name__ == '__main__':
-    rainbow = generate_rainbow(10)
-    print(rainbow)
+    rainbow_all(1000)
+    rainbow_all(1000)
+    rainbow_all(1000)
+    rainbow_all(1000)
+    s.setPixelColor(0, (0, 0, 0))
+    s.setPixelColor(1, (0, 0, 0))
+    board.set_rgb([[1, 0, 0, 0], [2, 0, 0, 0]])
 
 
 '''
