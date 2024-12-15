@@ -2,6 +2,7 @@ import sys
 import TurboPi.HiwonderSDK.mecanum as mecanum
 import signal
 import time
+import colorsys
 
 inches_to_mm = 25.4
 
@@ -32,12 +33,24 @@ def rotate():
     time.sleep(1)
     chassis.set_velocity(0,0,0)   
 
+def generate_rainbow():
+    (r, g, b) = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+    R, G, B = int(255 * r), int(255 * r), int(255 * b)
+    return R, G, B
+
+def move_servos():
+    print("moving servoes")
+
+def rgb():
+    print("rgb")
+
 if __name__ == '__main__':
-    print("driving forward")
-    move_fwd(6)
-    time.sleep(2)
-    print("Rotating")
-    rotate()
+    R, G, B = generate_rainbow()
+    print(R)
+    print(G)
+    print(B)
+
+    
 '''
 
 from threading import Timer
