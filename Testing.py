@@ -1,13 +1,13 @@
 import sys
-import TurboPi.HiwonderSDK.mecanum as mecanum
+#import TurboPi.HiwonderSDK.mecanum as mecanum
 import signal
 import time
 import colorsys
 
 inches_to_mm = 25.4
 
-chassis = mecanum.MecanumChassis()
-
+#chassis = mecanum.MecanumChassis()
+'''
 def stop(signum, frame):
     print("stopping from signal interrupt")
     chassis.set_velocity(0,0,0)
@@ -32,11 +32,14 @@ def rotate():
     chassis.set_velocity(0, 0, -45)
     time.sleep(1)
     chassis.set_velocity(0,0,0)   
-
-def generate_rainbow():
-    (r, g, b) = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-    R, G, B = int(255 * r), int(255 * r), int(255 * b)
-    return R, G, B
+'''
+def generate_rainbow(n):
+    rainbow = []
+    for i in range(n):
+        hue = i / n
+        (r, g, b) = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+        rainbow.append((int(255 * r), int(255 * g), int(255 * b)))
+    return rainbow
 
 def move_servos():
     print("moving servoes")
@@ -45,12 +48,10 @@ def rgb():
     print("rgb")
 
 if __name__ == '__main__':
-    R, G, B = generate_rainbow()
-    print(R)
-    print(G)
-    print(B)
+    rainbow = generate_rainbow(10)
+    print(rainbow)
 
-    
+
 '''
 
 from threading import Timer
