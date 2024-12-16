@@ -193,7 +193,9 @@ if __name__ == '__main__':
     planner.navigate_to_final_goal(final_goal)
     controller.stop()
 
-    controller.happy_dance()
-
     controller.update_position_thread.cancel()
     controller.set_velocity_to_goal_thread.cancel()
+
+    time.sleep(1)
+
+    controller.happy_dance()
