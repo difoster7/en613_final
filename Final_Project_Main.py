@@ -1,3 +1,5 @@
+# David Foster EN.605.613 Introduction to Robotics final project
+
 import TurboPi.HiwonderSDK.mecanum as mecanum
 import TurboPi.HiwonderSDK.ros_robot_controller_sdk as rrc
 import TurboPi.HiwonderSDK.Sonar as snr
