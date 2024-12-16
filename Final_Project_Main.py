@@ -59,17 +59,19 @@ class RobotController:
     No other classes/functions should provide robot inputs (except the signal stop function)
     '''
 
-    def __init__(self, hz):
+    def __init__(self, hz, servo1_center, servo2_center):
         # param hz = speed at which the position and velocity threads should run
         self.update_position_thread = RepeatTimer(hz, self.update_position)
         self.update_position_thread.daemon = True
         self.set_velocity_to_goal_thread = RepeatTimer(hz, self.set_velocity_to_goal)
         self.set_velocity_to_goal_thread.daemon = True
         self.hz = hz
+        self.servo1_center = servo1_center
+        self.servo2_center = servo2_center
         self.reset_hardware()
 
     # Update robot position
-    def update_position(self, servo1_center, servo2_center):
+    def update_position(self):
         global position
 
         position[0] = position[0] + (velocity[0] * np.cos(velocity[1])) * self.hz * x_fudge_factor
@@ -183,7 +185,7 @@ if __name__ == '__main__':
                     [0,1,0,1,0],
                     [0,0,0,1,0]])
     final_goal = (0, 2)
-    controller = RobotController(1 / 30, servo_config.get('servo1'), servo_config.get('servo2'))
+    controller = RobotController(1/30, servo_config.get('servo1'), servo_config.get('servo2'))
     controller.update_position_thread.start()
     controller.set_velocity_to_goal_thread.start()
 
